@@ -254,10 +254,27 @@ class RPC:
         if identify_dimap(dimap_filepath) is not None:
             if float(dimap_version) < 2.0:
                 return cls.from_dimap_v1(dimap_filepath, topleftconvention)
-            if float(dimap_version) >= 2.0:
+            if 2.0 <= float(dimap_version) < 3.0:
                 return cls.from_dimap_v2(dimap_filepath, topleftconvention)
+            if float(dimap_version) >= 3.0:
+                return cls.from_dimap_v3()
         else:
             raise ValueError("can''t read dimap file")
+
+        return None
+
+    @classmethod
+    def from_dimap_v3(cls):
+        """
+        Load from Dimap v3
+
+        :param dimap_filepath  : dimap xml file
+        :type dimap_filepath  : str
+        :param topleftconvention  : [0,0] position
+        :type topleftconvention  : boolean
+        If False : [0,0] is at the center of the Top Left pixel
+        If True : [0,0] is at the top left of the Top Left pixel (OSSIM)
+        """
 
         return None
 
@@ -525,8 +542,10 @@ class RPC:
             if dimap_version is not None:
                 if float(dimap_version) < 2.0:
                     return cls.from_dimap_v1(primary_file, topleftconvention)
-                if float(dimap_version) >= 2.0:
+                if 2.0 <= float(dimap_version) < 3.0:
                     return cls.from_dimap_v2(primary_file, topleftconvention)
+                if float(dimap_version) >= 3.0:
+                    return cls.from_dimap_v3()
         ossim_model = identify_ossim_kwl(primary_file)
         if ossim_model is not None:
             return cls.from_ossim_kwl(primary_file, topleftconvention)
