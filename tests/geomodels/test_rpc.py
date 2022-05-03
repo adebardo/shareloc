@@ -232,6 +232,29 @@ def test_rpc_dimap_v2(id_scene, lon, lat, alt, row_vt, col_vt):
     assert row == pytest.approx(row_vt, abs=1e-2)
 
 
+@pytest.mark.parametrize(
+    "id_scene,lon,lat,alt, col_vt,row_vt",
+    [
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 5.28785387, 43.45461999, 0.0, 0, 0),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 5.48563957, 43.46214803, 0.0, 46912, 0),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 5.48458244, 43.19131169, 0.0, 46912, 93216),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 5.28876216, 43.18248361, 0.0, 0, 93216),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 5.38667605, 43.3226388, 0.0, 23457, 46609),
+    ],
+)
+def test_rpc_dimap_v3(id_scene, lon, lat, alt, row_vt, col_vt):
+    """
+    test inverse localization using dimap files
+    """
+    data_folder = data_path()
+    file_dimap = os.path.join(data_folder, f"rpc/RPC_{id_scene}.XML")
+    fctrat_dimap = RPC.from_dimap(file_dimap, topleftconvention=True)
+
+    (row, col, __) = fctrat_dimap.inverse_loc(lon, lat, alt)
+    assert col == pytest.approx(col_vt, abs=5e-2)
+    assert row == pytest.approx(row_vt, abs=5e-2)
+
+
 @pytest.mark.parametrize("col,row,alt", [(600, 200, 125)])
 def test_rpc_phrdimap(col, row, alt):
     """
@@ -248,6 +271,55 @@ def test_rpc_phrdimap(col, row, alt):
     (row_ar, col_ar, __) = fctrat.inverse_loc(lonlatalt[0][0], lonlatalt[0][1], lonlatalt[0][2])
     assert col_ar == pytest.approx(col, abs=2e-2)
     assert row_ar == pytest.approx(row, abs=2e-2)
+
+
+@pytest.mark.parametrize(
+    "id_scene, col, row, lon_v_gdal, lat_v_gdal",
+    [
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 0, 0, 5.287853768, 43.45461995),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 46912, 0, 5.485639517, 43.462148),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 46912, 93216, 5.484582568, 43.19131169),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 0, 93216, 5.288762204, 43.18248358),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 23457, 46609, 5.386676061, 43.3226388),
+    ],
+)
+def test_rpc_direct_loc_pneo(id_scene, col, row, lon_v_gdal, lat_v_gdal):
+    """
+    test direct localization for PNEO datas using gdal truth
+    """
+    data_folder = data_path()
+    file_dimap = os.path.join(data_folder, f"rpc/RPC_{id_scene}.XML")
+    fctrat_dimap = RPC.from_dimap(file_dimap, topleftconvention=True)
+
+    loc = fctrat_dimap.direct_loc_h(row, col, 0.0)
+
+    assert loc[0][0] == pytest.approx(lon_v_gdal, abs=2e-7)
+    assert loc[0][1] == pytest.approx(lat_v_gdal, abs=2e-7)
+
+
+@pytest.mark.parametrize(
+    "id_scene, col, row",
+    [
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 0, 0),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 46912, 0),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 46912, 93216),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 0, 93216),
+        ("PNEO3_202111071029101_PAN_SEN_PWOI_000005973_3_1_F_1", 23457, 46609),
+    ],
+)
+def test_rpc_direct_inverse_pneo(id_scene, col, row):
+    """
+    test direct/inverse localization for PNEO datas
+    """
+    data_folder = data_path()
+    file_dimap = os.path.join(data_folder, f"rpc/RPC_{id_scene}.XML")
+    fctrat_dimap = RPC.from_dimap(file_dimap, topleftconvention=True)
+
+    loc_i2g = fctrat_dimap.direct_loc_h(row, col, 0.0)
+    loc_g2i = fctrat_dimap.inverse_loc(loc_i2g[0][0], loc_i2g[0][1], loc_i2g[0][2])
+
+    assert row == pytest.approx(loc_g2i[0], abs=1e-1)
+    assert col == pytest.approx(loc_g2i[1], abs=1e-1)
 
 
 @pytest.mark.parametrize("col,row,alt", [(600, 200, 125)])
